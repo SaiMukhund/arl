@@ -1,0 +1,12 @@
+Risk-aware Laya synthetic experiment
+episodes=3000, seed=7
+Laya used=False
+
+Validation calibration:
+{'brier': 0.024922846121630694, 'log_loss': 0.11721033639191823, 'auc': 0.6306446589847399, 'mean_predicted_success': 0.9743495405153628, 'observed_success': 0.9743589743589743}
+
+       policy  success_rate  mean_cost  catastrophic_rate  cvar_5pct    total_cost
+ success_only       0.97365  23.986503            0.01075 479.730058 479730.058122
+expected_cost       0.97165  22.904086            0.01065 458.081723 458081.723439
+         cvar       0.97180  21.528080            0.01020 430.561604 430561.603644
+  cvar_safety       0.97300  20.321030            0.01020 406.420605 406420.605229
