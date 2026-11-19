@@ -345,6 +345,7 @@ better; $P(\text{major})$ lower is better. ``agree'' is w.r.t.\ the entropic ora
 policy & mean & CVaR & $\Ubeta$ & $P(\text{minor})$ & $P(\text{major})$ & agree\\
 \midrule
 oracle entropic (VI) & $6.86$ & $2.57$ & $\mathbf{6.31}$ & $0.016$ & $0.0031$ & $1.00$\\
+\textbf{yev0-4b finetuned (native, entropic)} & $6.86$ & $2.57$ & $\mathbf{6.31}$ & $0.016$ & $0.0031$ & $\mathbf{1.00}$\\
 nested CVaR (DP) & $5.63$ & $\mathbf{4.42}$ & $5.54$ & $0.003$ & $0.0006$ & $0.78$\\
 always ASK & $4.98$ & $4.52$ & $4.98$ & $0.000$ & $0.0000$ & $0.75$\\
 QR-DQN+CVaR (MLP) & $5.55$ & $2.40$ & $-23.41$ & $0.006$ & $0.0023$ & $0.70$\\
@@ -394,12 +395,50 @@ escalate (ASK) precisely on the dangerous page types (payment, confirm, account)
 \label{fig:heatmap}
 \end{figure}
 
+\paragraph{Beta sweep.} Sweeping the risk parameter on RiskyFlow
+(Table~\ref{tab:flowsweep}, Fig.~\ref{fig:flowsweep}) compares the \emph{adapting}
+entropic oracle against the \emph{fixed} risk-neutral and nested-CVaR policies,
+scored by $\Ubeta$ and the major-catastrophe rate at each $\beta$. The entropic
+oracle keeps a high objective and drives its catastrophe rate to zero as $\beta$
+grows, while the risk-neutral policy's objective collapses ($8.45\to-74$) at a
+constant $1.7\%$ catastrophe rate; nested CVaR stays tail-safe throughout. The
+natively fine-tuned \texttt{yev0-4b} (stars, trained separately at
+$\beta\in\{0.05,0.1,0.2\}$) lands \emph{exactly} on the oracle curve at every
+$\beta$ tested ($\Ubeta=7.02,6.31,5.23$; agreement $0.97$--$1.00$), confirming that
+training yev0-4b's own probabilities recovers the risk-sensitive optimum across
+risk levels, not just at a single $\beta$.
+
+\begin{table}[H]\centering\small
+\caption{RiskyFlow $\beta$ sweep: entropic objective $\Ubeta$ and major-catastrophe
+probability. ``oracle'' adapts to $\beta$; ``r-neutral'' and ``CVaR'' are fixed
+policies evaluated at each $\beta$. yev$^\star$ is the natively fine-tuned
+\texttt{yev0-4b}.}
+\label{tab:flowsweep}
+\begin{tabular}{@{}lrrrcrrr@{}}
+\toprule
+& \multicolumn{3}{c}{$\Ubeta$ (higher better)} & yev$^\star$ &
+  \multicolumn{3}{c}{$P(\text{major})$ (lower better)}\\
+\cmidrule(lr){2-4}\cmidrule(lr){6-8}
+$\beta$ & oracle & r-neutral & CVaR & $\Ubeta$ & oracle & r-neutral & CVaR\\
+\midrule
+$0.00$ & $8.45$ & $8.45$ & $5.63$ & -- & $0.0174$ & $0.0174$ & $0.0006$\\
+$0.05$ & $7.02$ & $-3.67$ & $5.60$ & $7.02$ & $0.0071$ & $0.0174$ & $0.0006$\\
+$0.10$ & $6.31$ & $-39.29$ & $5.54$ & $6.31$ & $0.0031$ & $0.0174$ & $0.0006$\\
+$0.15$ & $5.69$ & $-56.71$ & $5.42$ & -- & $0.0015$ & $0.0174$ & $0.0006$\\
+$0.20$ & $5.23$ & $-65.52$ & $5.10$ & $5.23$ & $0.0005$ & $0.0174$ & $0.0006$\\
+$0.30$ & $4.97$ & $-74.38$ & $2.44$ & -- & $0.0000$ & $0.0174$ & $0.0006$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \begin{figure}[H]\centering
-\includegraphics[width=0.92\textwidth]{../results/beta_sweep_flow.png}
-\caption{RiskyFlow $\beta$ sweep. \emph{Left:} the entropic oracle's objective stays
-high while the fixed risk-neutral policy's objective collapses as $\beta$ grows.
-\emph{Right:} the oracle's major-catastrophe probability falls steeply with $\beta$,
-far below the fixed risk-neutral policy's rate (dashed).}
+\includegraphics[width=0.95\textwidth]{../results/exp3_beta_sweep.png}
+\caption{RiskyFlow ($\beta$ sweep). \emph{Left:} entropic objective $\Ubeta$ --- the
+adapting entropic oracle (green) stays high while the fixed risk-neutral policy
+(red) collapses; nested CVaR (purple) is stable; natively fine-tuned
+\texttt{yev0-4b} (orange stars) sits on the oracle curve. \emph{Right:}
+major-catastrophe probability falls to zero for the oracle as $\beta$ grows, while
+the risk-neutral policy stays flat.}
 \label{fig:flowsweep}
 \end{figure}
 
@@ -415,12 +454,20 @@ far below the fixed risk-neutral policy's rate (dashed).}
 \item \textbf{QR-DQN+CVaR is the best model-free learner} on the tail
   ($P(\text{major}){=}0.0023$, strong CVaR), confirming that model-free tail-risk
   control works here.
+\item \textbf{Natively fine-tuned \texttt{yev0-4b} matches the oracle.} Training
+  \texttt{yev0-4b}'s \emph{own} Choice probabilities with the blog's log loss
+  (Experiment~5, here on RiskyFlow) reaches the \emph{exact} entropic optimum
+  ($\Ubeta{=}6.31$, agreement $1.00$, $P(\text{major}){=}0.003$) --- it sits at the
+  top of the table alongside the oracle, far above every feature-DQN \texttt{yev}
+  variant. Training the model in its native form, against a model-based target, is
+  dramatically more effective than model-free learning on raw \texttt{yev} features.
 \item \textbf{Honest negatives.} (a) Model-free \emph{entropic} DQN is
   high-variance --- the $\E[e^{-\beta R}]$ estimator has exponentially growing
   variance in $\beta$ --- and did not cut catastrophes as much as the model-based
-  entropic oracle. (b) Raw frozen \texttt{yev0-4b} hidden features did \emph{not}
-  help (and slightly hurt) the model-free learner versus engineered features on
-  this task; see Experiment~4.
+  entropic oracle. (b) The model-free \emph{DQN} on raw frozen \texttt{yev0-4b}
+  hidden features did \emph{not} help (and slightly hurt) versus engineered
+  features (Experiment~4); note this is the feature-DQN route, \emph{not} the
+  native fine-tuning above, which matches the oracle.
 \end{enumerate}
 
 \subsection{Experiment 4 --- do yev0-4b features help the learner?}

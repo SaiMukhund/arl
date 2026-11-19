@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RiskyFlow Map</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one band per layer, 4 page-cards per band, colour = page danger tier */
+  :root{
+    --bg:#F5F4EF; --panel:#FFFFFF; --ink:#13233A; --muted:#55627A; --faint:#7E8AA0;
+    --line:#E2DFD4; --line2:#ECEAE0;
+    --teal:#1C7F8E; --amber:#C27A17; --danger:#C0443A; --good:#1E7A4F;
+    --f-head:'Space Grotesk',system-ui,sans-serif; --f-body:'Inter',system-ui,sans-serif; --f-mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0E1726; --panel:#15223A; --ink:#EAF1FA; --muted:#A9B7CC; --faint:#7D8CA6;
+    --line:#26354F; --line2:#1D2B45; --teal:#56C4D4; --amber:#E7A94B; --danger:#EC7368; --good:#64C999; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0E1726; --panel:#15223A; --ink:#EAF1FA; --muted:#A9B7CC; --faint:#7D8CA6;
+    --line:#26354F; --line2:#1D2B45; --teal:#56C4D4; --amber:#E7A94B; --danger:#EC7368; --good:#64C999; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  img{max-width:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.5;
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .wrap{max-width:1180px;margin:0 auto;padding-block:36px 72px}
+  .eyebrow{font-family:var(--f-head);text-transform:uppercase;letter-spacing:2px;font-size:12px;font-weight:600;color:var(--teal)}
+  h1{font-family:var(--f-head);font-size:clamp(28px,5vw,42px);margin:6px 0 0;letter-spacing:-.5px}
+  .sub{color:var(--muted);max-width:75ch;margin:12px 0 0;font-size:clamp(15px,2.2vw,18px)}
+  .legend{display:flex;flex-wrap:wrap;gap:16px 22px;align-items:center;margin:22px 0 10px;padding:14px 16px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;font-size:13.5px;color:var(--muted)}
+  .legend>div{display:flex;align-items:center;gap:7px}
+  .sw{width:15px;height:15px;border-radius:4px;border:2px solid;display:inline-block}
+  .sw.t-safe{border-color:var(--good);background:color-mix(in srgb,var(--good) 16%,transparent)}
+  .sw.t-mid{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 16%,transparent)}
+  .sw.t-danger{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 16%,transparent)}
+
+  .band{margin-top:22px}
+  .bhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:14px}
+  .bhead h2{font-family:var(--f-head);font-size:22px;margin:0}
+  .bhead .of{color:var(--faint);font-weight:400;font-size:15px}
+  .ltag{font-family:var(--f-head);font-size:12px;font-weight:600;color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent);padding:3px 10px;border-radius:999px}
+  .ltag.danger{color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent)}
+  .lnote{font-size:12.5px;color:var(--faint);font-family:var(--f-mono)}
+
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:860px){.cards{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:480px){.cards{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-left-width:5px;border-radius:10px;padding:12px 13px;min-width:0}
+  .card.t-safe{border-left-color:var(--good)} .card.t-mid{border-left-color:var(--amber)}
+  .card.t-danger{border-left-color:var(--danger)} .card.t-goal{border-left-color:var(--good)}
+  .chead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .pid{font-family:var(--f-mono);font-size:12px;color:var(--faint)}
+  .ptype{font-family:var(--f-head);font-weight:600;font-size:13.5px}
+  .ptype.t-safe{color:var(--good)} .ptype.t-mid{color:var(--amber)} .ptype.t-danger{color:var(--danger)} .ptype.t-goal{color:var(--good)}
+  .elems{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px}
+  .chip{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);background:var(--line2);border-radius:5px;padding:2px 6px}
+  .chip.danger{color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent)}
+  .chip b{color:var(--ink);font-weight:600}
+  .rowline{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px}
+  .rowline .v{font-family:var(--f-mono);color:var(--ink);font-weight:500}
+  .bar{height:6px;border-radius:4px;background:var(--line2);overflow:hidden;margin-top:3px}
+  .bar i{display:block;height:100%;background:var(--danger)}
+  .grid2{display:grid;grid-template-columns:auto auto auto auto;gap:2px 10px;margin-top:8px;font-size:12px;color:var(--muted);justify-content:start}
+  .grid2 .v{font-family:var(--f-mono);color:var(--ink)}
+  .meta2{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid var(--line2);font-size:11.5px;color:var(--faint)}
+  .sev{font-family:var(--f-mono)}
+  .hint{display:flex;align-items:center;gap:6px;font-family:var(--f-mono)}
+  .hbar{width:54px;height:6px;border-radius:4px;background:var(--line2);overflow:hidden;display:inline-block}
+  .hbar i{display:block;height:100%;background:var(--amber)}
+  .tdesc{font-size:13px;color:var(--muted);margin:2px 0 0}
+  .tdesc b{color:var(--ink)}
+  footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:34px;font-family:var(--f-mono)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Custom environment · built for this project (src/env_v2.py)</p>
+  <h1>RiskyFlow &mdash; full map</h1>
+  <p class="sub">Every page of the RiskyFlow MDP (seed 0): 10 layers &times; 4 branches = 40 pages, plus 3 terminal states. Numbers are the exact per-page danger values the environment generates. The agent moves left&rarr;right (FAST skips 2 layers, SAFE/ASK advance 1) until it reaches a terminal.</p>
+
+  <section class="legend">
+    <div><span class="sw t-safe"></span>routine page</div>
+    <div><span class="sw t-mid"></span>elevated risk</div>
+    <div><span class="sw t-danger"></span>high risk (payment / confirm)</div>
+    <div><span class="chip danger" style="margin:0">dangerous element</span></div>
+    <div>&#128274; = hidden severity (not observed)</div>
+    <div>hint = noisy visible danger meter</div>
+  </section>
+
+    <section class="band">
+      <div class="bhead"><h2>Layer 1 <span class="of">/ 10</span></h2><span class="ltag">routine</span><span class="lnote">start layer (page #0)</span></div>
+      <div class="cards">
+      <div class="card t-mid">
+        <div class="chead"><span class="pid">#0</span><span class="ptype t-mid">form_fill</span></div>
+        <div class="elems"><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip">newsletter_signup <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.97%</span></div>
+        <div class="bar"><i style="width:14%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.90%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;29.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;6.8</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:34%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-safe">
+        <div class="chead"><span class="pid">#1</span><span class="ptype t-safe">navigation</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span><span class="chip">search_box <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.28%</span></div>
+        <div class="bar"><i style="width:4%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">2.10%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;11.2</span>
+          <span class="k">c_minor</span><span class="v">&minus;2.7</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:46%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-safe">
+        <div class="chead"><span class="pid">#2</span><span class="ptype t-safe">navigation</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span><span class="chip">search_box <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.28%</span></div>
+        <div class="bar"><i style="width:4%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">2.10%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;11.2</span>
+          <span class="k">c_minor</span><span class="v">&minus;2.7</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:17%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-safe">
+        <div class="chead"><span class="pid">#3</span><span class="ptype t-safe">navigation</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span><span class="chip">search_box <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.28%</span></div>
+        <div class="bar"><i style="width:4%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">2.10%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;11.2</span>
+          <span class="k">c_minor</span><span class="v">&minus;2.7</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:39%"></i></span></span>
+        </div>
+      </div>
+      </div>
+    </section>    <section class="band">
+      <div class="bhead"><h2>Layer 2 <span class="of">/ 10</span></h2><span class="ltag danger">3 high-risk</span></div>
+      <div class="cards">
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#4</span><span class="ptype t-mid">account</span></div>
+        <div class="elems"><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">1.58%</span></div>
+        <div class="bar"><i style="width:23%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">1.80%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;88.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;7.3</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:33%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#5</span><span class="ptype t-danger">payment</span></div>
+        <div class="elems"><span class="chip">apply_coupon <b>&times;1.1</b></span><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">1.94%</span></div>
+        <div class="bar"><i style="width:29%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">1.80%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;9.4</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:13%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-mid">
+        <div class="chead"><span class="pid">#6</span><span class="ptype t-mid">form_fill</span></div>
+        <div class="elems"><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip">newsletter_signup <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.50%</span></div>
+        <div class="bar"><i style="width:7%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">2.10%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;25.2</span>
+          <span class="k">c_minor</span><span class="v">&minus;5.2</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:23%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#7</span><span class="ptype t-mid">login</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip">newsletter_signup <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">1.61%</span></div>
+        <div class="bar"><i style="width:24%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.20%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;48.3</span>
+          <span class="k">c_minor</span><span class="v">&minus;8.2</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:19%"></i></span></span>
+        </div>
+      </div>
+      </div>
+    </section>    <section class="band">
+      <div class="bhead"><h2>Layer 3 <span class="of">/ 10</span></h2><span class="ltag danger">2 high-risk</span></div>
+      <div class="cards">
+      <div class="card t-mid">
+        <div class="chead"><span class="pid">#8</span><span class="ptype t-mid">form_fill</span></div>
+        <div class="elems"><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip">newsletter_signup <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.97%</span></div>
+        <div class="bar"><i style="width:14%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.90%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;29.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;6.8</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:46%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#9</span><span class="ptype t-danger">confirm</span></div>
+        <div class="elems"><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip danger">place_order <b>&times;1.9</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">6.78%</span></div>
+        <div class="bar"><i style="width:100%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">3.50%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;13.6</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:71%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#10</span><span class="ptype t-mid">account</span></div>
+        <div class="elems"><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">3.70%</span></div>
+        <div class="bar"><i style="width:55%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.20%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;9.5</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:100%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-mid">
+        <div class="chead"><span class="pid">#11</span><span class="ptype t-safe">navigation</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip">next <b>&times;1</b></span><span class="chip">search_box <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.62%</span></div>
+        <div class="bar"><i style="width:9%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">2.10%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;24.6</span>
+          <span class="k">c_minor</span><span class="v">&minus;2.7</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:40%"></i></span></span>
+        </div>
+      </div>
+      </div>
+    </section>    <section class="band">
+      <div class="bhead"><h2>Layer 4 <span class="of">/ 10</span></h2><span class="ltag danger">2 high-risk</span></div>
+      <div class="cards">
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#12</span><span class="ptype t-danger">payment</span></div>
+        <div class="elems"><span class="chip">apply_coupon <b>&times;1.1</b></span><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">4.54%</span></div>
+        <div class="bar"><i style="width:67%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.20%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;12.2</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:77%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-safe">
+        <div class="chead"><span class="pid">#13</span><span class="ptype t-safe">navigation</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip">next <b>&times;1</b></span><span class="chip">search_box <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.26%</span></div>
+        <div class="bar"><i style="width:4%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">0.90%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;17.6</span>
+          <span class="k">c_minor</span><span class="v">&minus;2.1</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:17%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#14</span><span class="ptype t-mid">account</span></div>
+        <div class="elems"><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">1.58%</span></div>
+        <div class="bar"><i style="width:23%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">1.80%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;88.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;7.3</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:25%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-safe">
+        <div class="chead"><span class="pid">#15</span><span class="ptype t-safe">navigation</span></div>
+        <div class="elems"><span class="chip">apply_coupon <b>&times;1.1</b></span><span class="chip">back <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span><span class="chip">search_box <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.31%</span></div>
+        <div class="bar"><i style="width:5%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">2.10%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;12.3</span>
+          <span class="k">c_minor</span><span class="v">&minus;2.7</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:33%"></i></span></span>
+        </div>
+      </div>
+      </div>
+    </section>    <section class="band">
+      <div class="bhead"><h2>Layer 5 <span class="of">/ 10</span></h2><span class="ltag danger">2 high-risk</span></div>
+      <div class="cards">
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#16</span><span class="ptype t-danger">payment</span></div>
+        <div class="elems"><span class="chip">apply_coupon <b>&times;1.1</b></span><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">1.94%</span></div>
+        <div class="bar"><i style="width:29%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">1.80%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;9.4</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:36%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#17</span><span class="ptype t-mid">login</span></div>
+        <div class="elems"><span class="chip">apply_coupon <b>&times;1.1</b></span><span class="chip">back <b>&times;1</b></span><span class="chip">newsletter_signup <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">1.54%</span></div>
+        <div class="bar"><i style="width:23%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.20%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;46.2</span>
+          <span class="k">c_minor</span><span class="v">&minus;8.2</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:37%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-mid">
+        <div class="chead"><span class="pid">#18</span><span class="ptype t-safe">search</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip">next <b>&times;1</b></span><span class="chip">search_box <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.48%</span></div>
+        <div class="bar"><i style="width:7%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">2.80%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;16.1</span>
+          <span class="k">c_minor</span><span class="v">&minus;4.1</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:28%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-mid">
+        <div class="chead"><span class="pid">#19</span><span class="ptype t-mid">form_fill</span></div>
+        <div class="elems"><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip">newsletter_signup <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.97%</span></div>
+        <div class="bar"><i style="width:14%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.90%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;29.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;6.8</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:27%"></i></span></span>
+        </div>
+      </div>
+      </div>
+    </section>    <section class="band">
+      <div class="bhead"><h2>Layer 6 <span class="of">/ 10</span></h2><span class="ltag danger">2 high-risk</span></div>
+      <div class="cards">
+      <div class="card t-safe">
+        <div class="chead"><span class="pid">#20</span><span class="ptype t-safe">navigation</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span><span class="chip">search_box <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.20%</span></div>
+        <div class="bar"><i style="width:3%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">1.50%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;9.6</span>
+          <span class="k">c_minor</span><span class="v">&minus;2.4</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1</span>
+          <span class="hint">hint <span class="hbar"><i style="width:32%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-safe">
+        <div class="chead"><span class="pid">#21</span><span class="ptype t-safe">navigation</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip">next <b>&times;1</b></span><span class="chip">search_box <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.22%</span></div>
+        <div class="bar"><i style="width:3%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">0.90%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;14.4</span>
+          <span class="k">c_minor</span><span class="v">&minus;2.1</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:18%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#22</span><span class="ptype t-mid">account</span></div>
+        <div class="elems"><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">2.64%</span></div>
+        <div class="bar"><i style="width:39%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">3.00%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;8.4</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1</span>
+          <span class="hint">hint <span class="hbar"><i style="width:31%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#23</span><span class="ptype t-mid">account</span></div>
+        <div class="elems"><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip danger">place_order <b>&times;1.9</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">3.70%</span></div>
+        <div class="bar"><i style="width:55%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.20%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;9.5</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:55%"></i></span></span>
+        </div>
+      </div>
+      </div>
+    </section>    <section class="band">
+      <div class="bhead"><h2>Layer 7 <span class="of">/ 10</span></h2><span class="ltag danger">4 high-risk</span></div>
+      <div class="cards">
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#24</span><span class="ptype t-mid">account</span></div>
+        <div class="elems"><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">2.64%</span></div>
+        <div class="bar"><i style="width:39%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">3.00%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;8.4</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1</span>
+          <span class="hint">hint <span class="hbar"><i style="width:54%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#25</span><span class="ptype t-mid">login</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip">newsletter_signup <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">1.40%</span></div>
+        <div class="bar"><i style="width:21%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.20%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;42.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;8.2</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:34%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#26</span><span class="ptype t-danger">confirm</span></div>
+        <div class="elems"><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip danger">place_order <b>&times;1.9</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">4.84%</span></div>
+        <div class="bar"><i style="width:71%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">2.50%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;12.0</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1</span>
+          <span class="hint">hint <span class="hbar"><i style="width:65%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#27</span><span class="ptype t-danger">confirm</span></div>
+        <div class="elems"><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip danger">place_order <b>&times;1.9</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">6.78%</span></div>
+        <div class="bar"><i style="width:100%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">3.50%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;13.6</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:74%"></i></span></span>
+        </div>
+      </div>
+      </div>
+    </section>    <section class="band">
+      <div class="bhead"><h2>Layer 8 <span class="of">/ 10</span></h2><span class="ltag danger">3 high-risk</span></div>
+      <div class="cards">
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#28</span><span class="ptype t-danger">payment</span></div>
+        <div class="elems"><span class="chip">apply_coupon <b>&times;1.1</b></span><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">1.94%</span></div>
+        <div class="bar"><i style="width:29%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">1.80%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;9.4</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:19%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#29</span><span class="ptype t-danger">payment</span></div>
+        <div class="elems"><span class="chip">apply_coupon <b>&times;1.1</b></span><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">3.24%</span></div>
+        <div class="bar"><i style="width:48%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">3.00%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;10.8</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1</span>
+          <span class="hint">hint <span class="hbar"><i style="width:37%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#30</span><span class="ptype t-danger">payment</span></div>
+        <div class="elems"><span class="chip">apply_coupon <b>&times;1.1</b></span><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">1.94%</span></div>
+        <div class="bar"><i style="width:29%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">1.80%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;9.4</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:32%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-mid">
+        <div class="chead"><span class="pid">#31</span><span class="ptype t-mid">login</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip">newsletter_signup <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.60%</span></div>
+        <div class="bar"><i style="width:9%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">1.80%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;30.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;6.2</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:15%"></i></span></span>
+        </div>
+      </div>
+      </div>
+    </section>    <section class="band">
+      <div class="bhead"><h2>Layer 9 <span class="of">/ 10</span></h2><span class="ltag danger">3 high-risk</span></div>
+      <div class="cards">
+      <div class="card t-mid">
+        <div class="chead"><span class="pid">#32</span><span class="ptype t-mid">form_fill</span></div>
+        <div class="elems"><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip">newsletter_signup <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">0.97%</span></div>
+        <div class="bar"><i style="width:14%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.90%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;29.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;6.8</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:53%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#33</span><span class="ptype t-danger">payment</span></div>
+        <div class="elems"><span class="chip">apply_coupon <b>&times;1.1</b></span><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">4.54%</span></div>
+        <div class="bar"><i style="width:67%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.20%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;12.2</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:50%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#34</span><span class="ptype t-mid">account</span></div>
+        <div class="elems"><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">1.58%</span></div>
+        <div class="bar"><i style="width:23%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">1.80%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;88.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;7.3</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:32%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#35</span><span class="ptype t-mid">login</span></div>
+        <div class="elems"><span class="chip">back <b>&times;1</b></span><span class="chip">newsletter_signup <b>&times;1</b></span><span class="chip">next <b>&times;1</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">1.40%</span></div>
+        <div class="bar"><i style="width:21%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.20%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;42.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;8.2</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:35%"></i></span></span>
+        </div>
+      </div>
+      </div>
+    </section>    <section class="band">
+      <div class="bhead"><h2>Layer 10 <span class="of">/ 10</span></h2><span class="ltag danger">4 high-risk</span></div>
+      <div class="cards">
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#36</span><span class="ptype t-mid">account</span></div>
+        <div class="elems"><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">3.70%</span></div>
+        <div class="bar"><i style="width:55%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">4.20%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;9.5</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1.4</span>
+          <span class="hint">hint <span class="hbar"><i style="width:94%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#37</span><span class="ptype t-danger">confirm</span></div>
+        <div class="elems"><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip danger">place_order <b>&times;1.9</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">2.90%</span></div>
+        <div class="bar"><i style="width:43%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">1.50%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;10.4</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;0.6</span>
+          <span class="hint">hint <span class="hbar"><i style="width:19%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#38</span><span class="ptype t-danger">confirm</span></div>
+        <div class="elems"><span class="chip danger">confirm_payment <b>&times;1.8</b></span><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip danger">place_order <b>&times;1.9</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">4.84%</span></div>
+        <div class="bar"><i style="width:71%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">2.50%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;12.0</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1</span>
+          <span class="hint">hint <span class="hbar"><i style="width:45%"></i></span></span>
+        </div>
+      </div>
+      <div class="card t-danger">
+        <div class="chead"><span class="pid">#39</span><span class="ptype t-mid">account</span></div>
+        <div class="elems"><span class="chip danger">delete_account <b>&times;2.2</b></span><span class="chip">enter_address <b>&times;1.15</b></span><span class="chip danger">save_card <b>&times;1.4</b></span></div>
+        <div class="rowline"><span class="k">major fault</span><span class="v">2.64%</span></div>
+        <div class="bar"><i style="width:39%"></i></div>
+        <div class="rowline"><span class="k">minor fault</span><span class="v">3.00%</span></div>
+        <div class="grid2">
+          <span class="k">c_major</span><span class="v">&minus;90.0</span>
+          <span class="k">c_minor</span><span class="v">&minus;8.4</span>
+        </div>
+        <div class="meta2">
+          <span class="sev" title="hidden from the agent">&#128274; sev &times;1</span>
+          <span class="hint">hint <span class="hbar"><i style="width:70%"></i></span></span>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <section class="band terminals">
+      <div class="bhead"><h2>Terminal states</h2></div>
+      <div class="cards">
+        <div class="card t-goal"><div class="chead"><span class="pid">#40</span><span class="ptype t-goal">GOAL</span></div><p class="tdesc">Reached the last layer successfully. Reward <b>+15</b>.</p></div>
+        <div class="card t-mid"><div class="chead"><span class="pid">#41</span><span class="ptype t-mid">CAT_MINOR</span></div><p class="tdesc">Recoverable error. Cost up to <b>&minus;25</b>.</p></div>
+        <div class="card t-danger"><div class="chead"><span class="pid">#42</span><span class="ptype t-danger">CAT_MAJOR</span></div><p class="tdesc">Irreversible error. Cost up to <b>&minus;90</b>.</p></div>
+      </div>
+    </section>
+
+  <footer>Generated from entropic_risk_jev/src/env_v2.py · RiskyFlow(seed=0)</footer>
+</div>
+</body>
+</html>

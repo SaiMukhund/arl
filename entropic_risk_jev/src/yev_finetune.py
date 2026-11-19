@@ -161,20 +161,34 @@ def train(yev: YevPolicy, targets, loss_type="log", epochs=60, lr=2e-4,
             print(f"  epoch {ep:3d}  {loss_type}-loss={tot/len(states):.4f}")
 
 
-def evaluate(env, policy, beta):
+def evaluate(env, policy, beta, alpha=0.1):
     p, z = distributional_policy_evaluation(env, policy, natoms=601)
     tp = policy_terminal_probs(env, policy)
     nonterm = [s for s in range(env.n_states) if not env.is_terminal(s)]
     oracle = risk_sensitive_value_iteration(env, beta).policy
     agree = float(np.mean([policy[s] == oracle[s] for s in nonterm]))
-    return {"mean": mean_categorical(z, p), "U_beta": entropic_categorical(z, p, beta),
-            "p_cat": tp[env.CATASTROPHE], "agree": agree}
+    from .risk_measures import cvar_categorical
+    out = {"mean": mean_categorical(z, p), "U_beta": entropic_categorical(z, p, beta),
+           "cvar": cvar_categorical(z, p, alpha), "agree": agree}
+    if hasattr(env, "CATASTROPHE"):            # RiskyWeb (single failure mode)
+        out["p_cat"] = tp[env.CATASTROPHE]
+    if hasattr(env, "CAT_MAJOR"):              # RiskyFlow (graded failures)
+        out["p_minor"] = tp[env.CAT_MINOR]
+        out["p_major"] = tp[env.CAT_MAJOR]
+    return out
 
 
-def run(beta, loss_type, target_mode, epochs, device, seed, yev_model):
+def _make_env(env_name, seed):
+    if env_name == "flow":
+        from .env_v2 import RiskyFlow, RiskyFlowConfig
+        return RiskyFlow(RiskyFlowConfig(seed=seed))
+    return RiskyWeb(RiskyWebConfig(seed=seed))
+
+
+def run(beta, loss_type, target_mode, epochs, device, seed, yev_model, env_name="web"):
     torch.manual_seed(seed); np.random.seed(seed)
-    env = RiskyWeb(RiskyWebConfig(seed=seed))
-    print(f"RiskyWeb {env.n_layers}x{env.width}, beta={beta}, loss={loss_type}, "
+    env = _make_env(env_name, seed)
+    print(f"env={env_name} ({env.n_layers}x{env.width}), beta={beta}, loss={loss_type}, "
           f"target={target_mode}")
     oracle_pol, targets = build_targets(env, beta, mode=target_mode)
 
@@ -188,18 +202,20 @@ def run(beta, loss_type, target_mode, epochs, device, seed, yev_model):
     rows[f"yev0-4b finetuned (beta={beta})"] = evaluate(env, yev.native_policy(), beta)
     rows["oracle entropic (VI)"] = evaluate(env, oracle_pol, beta)
 
-    print("\n" + "=" * 78)
-    print(f"Fine-tuning yev0-4b's NATIVE policy with the blog's {loss_type}-loss")
-    print("=" * 78)
-    print(f"{'policy':<30} | {'mean':>7} | {'U_beta':>8} | {'P(cat)':>7} | {'agree':>5}")
-    print("-" * 78)
+    fail_key = "p_major" if env_name == "flow" else "p_cat"
+    print("\n" + "=" * 82)
+    print(f"Fine-tuning yev0-4b's NATIVE policy with the blog's {loss_type}-loss ({env_name})")
+    print("=" * 82)
+    print(f"{'policy':<30} | {'mean':>7} | {'CVaR':>7} | {'U_beta':>8} | "
+          f"{fail_key:>8} | {'agree':>5}")
+    print("-" * 82)
     for n, r in rows.items():
-        print(f"{n:<30} | {r['mean']:>7.3f} | {r['U_beta']:>8.3f} | "
-              f"{r['p_cat']:>7.4f} | {r['agree']:>5.2f}")
-    print("-" * 78)
+        print(f"{n:<30} | {r['mean']:>7.3f} | {r['cvar']:>7.2f} | {r['U_beta']:>8.3f} | "
+              f"{r.get(fail_key, 0):>8.4f} | {r['agree']:>5.2f}")
+    print("-" * 82)
     os.makedirs(RESULTS_DIR, exist_ok=True)
-    json.dump({"beta": beta, "loss": loss_type, "rows": rows},
-              open(os.path.join(RESULTS_DIR, f"yev_finetune_beta{beta}.json"), "w"),
+    json.dump({"beta": beta, "loss": loss_type, "env": env_name, "rows": rows},
+              open(os.path.join(RESULTS_DIR, f"yev_finetune_{env_name}_beta{beta}.json"), "w"),
               indent=2)
     return rows
 
@@ -213,9 +229,10 @@ def main():
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--yev-model", default="choyiny/yev0-4b")
+    ap.add_argument("--env", choices=["web", "flow"], default="web")
     args = ap.parse_args()
     run(args.beta, args.loss, args.target, args.epochs, args.device, args.seed,
-        args.yev_model)
+        args.yev_model, env_name=args.env)
 
 
 if __name__ == "__main__":

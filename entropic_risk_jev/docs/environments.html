@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Risk-Jev Environments</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  html,body{margin:0}
+  img{max-width:100%}
+  /* Layout: single reading column, sticky section nav, mono code blocks for the reward math */
+  :root{
+    --bg:#F5F4EF; --panel:#FFFFFF; --ink:#13233A; --muted:#55627A; --faint:#7E8AA0;
+    --line:#E2DFD4; --line2:#ECEAE0;
+    --teal:#1C7F8E; --teal-ink:#0F5663; --amber:#C27A17; --danger:#C0443A; --good:#1E7A4F;
+    --code-bg:#13233A; --code-ink:#D6E2F0; --code-key:#6FD0E0; --code-num:#F2B872; --code-com:#8294AE;
+    --f-head:'Space Grotesk',system-ui,sans-serif; --f-body:'Inter',system-ui,sans-serif; --f-mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0E1726; --panel:#15223A; --ink:#EAF1FA; --muted:#A9B7CC; --faint:#7D8CA6;
+    --line:#26354F; --line2:#1D2B45;
+    --teal:#56C4D4; --teal-ink:#9FE4EE; --amber:#E7A94B; --danger:#EC7368; --good:#64C999;
+    --code-bg:#0A1220; --code-ink:#D6E2F0; --code-key:#6FD0E0; --code-num:#F2B872; --code-com:#7488A4;
+    color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0E1726; --panel:#15223A; --ink:#EAF1FA; --muted:#A9B7CC; --faint:#7D8CA6;
+    --line:#26354F; --line2:#1D2B45;
+    --teal:#56C4D4; --teal-ink:#9FE4EE; --amber:#E7A94B; --danger:#EC7368; --good:#64C999;
+    --code-bg:#0A1220; --code-ink:#D6E2F0; --code-key:#6FD0E0; --code-num:#F2B872; --code-com:#7488A4;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.6;
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));}
+  .wrap{max-width:1000px;margin:0 auto;padding-block:40px 80px}
+
+  h1{font-family:var(--f-head);font-size:clamp(30px,6vw,46px);line-height:1.05;margin:0;letter-spacing:-.5px;text-wrap:balance}
+  .sub{color:var(--muted);font-size:clamp(16px,2.4vw,20px);margin:14px 0 0;max-width:62ch}
+  h2{font-family:var(--f-head);font-size:clamp(23px,4vw,31px);margin:0 0 4px;letter-spacing:-.3px}
+  h3{font-family:var(--f-head);font-size:19px;margin:26px 0 10px;color:var(--teal-ink)}
+  p{margin:10px 0}
+  a{color:var(--teal);text-decoration:none}
+  code{font-family:var(--f-mono);font-size:.92em;background:var(--line2);padding:1px 6px;border-radius:5px}
+
+  .eyebrow{font-family:var(--f-head);text-transform:uppercase;letter-spacing:2.5px;font-size:12.5px;font-weight:600;color:var(--teal)}
+
+  nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--bg);
+    display:flex;flex-wrap:wrap;gap:8px;padding:14px 0;margin:8px 0 28px;border-bottom:1px solid var(--line)}
+  nav a{font-family:var(--f-head);font-size:13.5px;font-weight:500;color:var(--muted);
+    border:1px solid var(--line);border-radius:999px;padding:6px 14px;white-space:nowrap}
+  nav a:hover{color:var(--ink);border-color:var(--teal)}
+
+  section{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:clamp(20px,3.5vw,34px);margin:0 0 22px}
+  .lede{color:var(--muted);margin-top:8px;max-width:70ch}
+
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 6px}
+  @media(max-width:720px){.grid3{grid-template-columns:1fr}}
+  .act{border:1px solid var(--line);border-radius:12px;padding:16px 18px;border-top:4px solid var(--teal)}
+  .act.safe{border-top-color:var(--amber)} .act.ask{border-top-color:var(--ink)}
+  .act h4{font-family:var(--f-head);margin:0 0 6px;font-size:17px}
+  .act p{margin:0;color:var(--muted);font-size:14.5px}
+  .act .k{font-family:var(--f-mono);font-size:12.5px;color:var(--faint)}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;font-variant-numeric:tabular-nums}
+  .scroll{overflow-x:auto}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line2)}
+  th{font-family:var(--f-head);font-size:13px;letter-spacing:.3px;color:var(--muted);font-weight:600}
+  td.r,th.r{text-align:right}
+  tr td:first-child{font-weight:500}
+  .pt-danger{color:var(--danger);font-weight:600}
+  .pt-mid{color:var(--amber);font-weight:600}
+  .pt-safe{color:var(--good);font-weight:600}
+
+  pre{background:var(--code-bg);color:var(--code-ink);font-family:var(--f-mono);font-size:13.5px;line-height:1.55;
+    border-radius:12px;padding:18px 20px;overflow-x:auto;margin:14px 0}
+  pre .c{color:var(--code-com)} pre .k{color:var(--code-key)} pre .n{color:var(--code-num)}
+  .note{border-left:3px solid var(--teal);background:var(--line2);border-radius:0 10px 10px 0;padding:12px 16px;margin:14px 0;font-size:14.5px;color:var(--muted)}
+  .tag{display:inline-block;font-family:var(--f-mono);font-size:12px;background:var(--line2);color:var(--teal-ink);border-radius:6px;padding:3px 9px;margin-right:6px}
+  .meta{color:var(--faint);font-size:13px;font-family:var(--f-mono);margin-top:6px}
+  ul{margin:10px 0;padding-left:22px} li{margin:5px 0;color:var(--muted)}
+  li b{color:var(--ink)}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  footer{color:var(--faint);font-size:13px;text-align:center;margin-top:30px}
+
+  /* flow diagrams */
+  .diagram{overflow-x:auto;margin:20px 0;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .dg{display:block;width:100%;height:auto;min-width:600px}
+  .dg .node{fill:var(--panel);stroke-width:2}
+  .dg .t-safe{stroke:var(--good)} .dg .t-mid{stroke:var(--amber)} .dg .t-danger{stroke:var(--danger)} .dg .t-neutral{stroke:var(--line)} .dg .t-goal{stroke:var(--good)} .dg .t-next{stroke:var(--teal)}
+  .dg .nlbl{fill:var(--ink);font-family:var(--f-head);font-weight:600;font-size:14px;text-anchor:middle}
+  .dg .nsub{fill:var(--muted);font-size:11px;text-anchor:middle;font-family:var(--f-mono)}
+  .dg .edge{stroke:var(--teal);stroke-width:2;fill:none}
+  .dg .edge.thin{stroke-width:1.3;opacity:.5}
+  .dg .arc{stroke:var(--teal-ink);stroke-width:1.6;fill:none}
+  .dg .risk{stroke:var(--danger);stroke-width:1.8;fill:none;stroke-dasharray:5 4}
+  .dg .warn{stroke:var(--amber);stroke-width:1.8;fill:none;stroke-dasharray:5 4}
+  .dg .elab{fill:var(--muted);font-size:12px;text-anchor:middle;font-family:var(--f-mono)}
+  .dg .cap{fill:var(--faint);font-size:12px;font-family:var(--f-body)}
+  .dg .mk-t{fill:var(--teal)} .dg .mk-ti{fill:var(--teal-ink)} .dg .mk-r{fill:var(--danger)} .dg .mk-a{fill:var(--amber)}
+  .diagram figcaption{color:var(--faint);font-size:12.5px;margin-top:8px}
+  .diagram figcaption b{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Entropic-Risk-Sensitive Jev</p>
+  <h1>Environments &amp; reward functions</h1>
+  <p class="sub">The three decision MDPs used in the project — <b>RiskyCheckout</b>, <b>RiskyWeb</b> and <b>RiskyFlow</b> — with their exact transition and reward functions, taken verbatim from the source.</p>
+
+  <nav>
+    <a href="#overview">Overview</a>
+    <a href="#actions">Actions &amp; rewards</a>
+    <a href="#checkout">RiskyCheckout</a>
+    <a href="#web">RiskyWeb</a>
+    <a href="#flow">RiskyFlow</a>
+  </nav>
+
+  <!-- OVERVIEW -->
+  <section id="overview">
+    <h2>Overview</h2>
+    <p class="lede">All three are fully-specified tabular MDPs over <b>true</b> states, exposed as explicit transition/reward tensors <code>P[s,a,s']</code> and <code>R[s,a,s']</code>. Because the model is known, exact entropic value iteration, distributional DP and exact policy evaluation are all available as ground truth. Each state also renders to a yev0-4b / Jev text prompt.</p>
+    <div class="scroll"><table>
+      <tr><th>Environment</th><th>States</th><th>Failure model</th><th>Key twist</th><th>Source</th></tr>
+      <tr><td>RiskyCheckout</td><td>6 stages + GOAL + CAT = <b>8</b></td><td>1 catastrophe, p=0.02</td><td>Cost gradient 6→64 across stages</td><td class="meta">src/env.py</td></tr>
+      <tr><td>RiskyWeb</td><td>8×3 + 2 = <b>24</b></td><td>1 catastrophe terminal</td><td>Branching DAG, typed pages, jitter</td><td class="meta">src/env_web.py</td></tr>
+      <tr><td>RiskyFlow</td><td>10×4 + 3 = <b>40</b></td><td><b>Graded</b>: minor + major</td><td>Semantic elements, hidden severity</td><td class="meta">src/env_v2.py</td></tr>
+    </table></div>
+    <p>Reward on a successful move to state <code>d</code> is always <code>R = −cost(a) + (goal_reward if d is GOAL else 0)</code>; a failure transition pays the page's negative catastrophe cost. Terminal states self-absorb with zero reward.</p>
+  </section>
+
+  <!-- ACTIONS -->
+  <section id="actions">
+    <h2>Shared action model</h2>
+    <p class="lede">Every non-terminal page offers the same three actions. They occupy distinct risk/cost niches, so as the risk parameter β rises the optimal policy climbs the ladder FAST → SAFE → ASK.</p>
+    <div class="grid3">
+      <div class="act"><div class="k">a = 0</div><h4>FAST</h4><p>Advance <code>fast_step</code> (=2) layers. Full failure probability. Cheapest.</p></div>
+      <div class="act safe"><div class="k">a = 1</div><h4>SAFE</h4><p>Advance 1 layer. Failure prob × <code>p_safe_factor</code> (=0.15). Small penalty.</p></div>
+      <div class="act ask"><div class="k">a = 2</div><h4>ASK</h4><p>Advance 1 layer. Failure prob = 0 (escalate to System&nbsp;2). Fixed cost.</p></div>
+    </div>
+    <h3>Reward components</h3>
+    <div class="scroll"><table>
+      <tr><th>Component</th><th>RiskyCheckout</th><th>RiskyWeb</th><th>RiskyFlow</th><th>Role</th></tr>
+      <tr><td>goal_reward</td><td class="r">+12.0</td><td class="r">+15.0</td><td class="r">+15.0</td><td>reach GOAL</td></tr>
+      <tr><td>step_cost</td><td class="r">−0.1</td><td class="r">−0.1</td><td class="r">−0.1</td><td>per move</td></tr>
+      <tr><td>safe_penalty</td><td class="r">−0.5</td><td class="r">−0.4</td><td class="r">−0.4</td><td>added to SAFE</td></tr>
+      <tr><td>ask_cost</td><td class="r">−1.2</td><td class="r">−1.0</td><td class="r">−1.0</td><td>cost of ASK</td></tr>
+      <tr><td>p_safe_factor</td><td class="r">0.15</td><td class="r">0.15</td><td class="r">0.15</td><td>SAFE risk scale</td></tr>
+      <tr><td>failure cost</td><td class="r">6…64</td><td class="r">~5…72</td><td class="r">minor ≤25 / major ≤90</td><td>the heavy tail</td></tr>
+    </table></div>
+    <div class="note">The <b>cost</b> paid for an action: FAST → <code>step_cost</code>; SAFE → <code>step_cost + safe_penalty</code>; ASK → <code>ask_cost</code>.</div>
+  </section>
+
+  <!-- CHECKOUT -->
+  <section id="checkout">
+    <h2>RiskyCheckout <span class="tag">src/env.py</span></h2>
+    <p class="lede">A 6-step linear chain — the minimal setting that makes risk-neutral and risk-averse policies differ. Catastrophes are rare (p=0.02) but expensive, with a cost gradient that rises each stage, so risk aversion drops FAST on the costliest stages first.</p>
+
+    <figure class="diagram">
+    <svg class="dg" viewBox="0 0 820 300" role="img" aria-label="RiskyCheckout: a linear six-stage chain; FAST skips two stages; any risky step can end in one catastrophe terminal whose cost rises along the chain.">
+      <defs>
+        <marker id="m1t" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path class="mk-t" d="M0,0 L9,4 L0,8 Z"/></marker>
+        <marker id="m1ti" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path class="mk-ti" d="M0,0 L9,4 L0,8 Z"/></marker>
+        <marker id="m1r" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path class="mk-r" d="M0,0 L9,4 L0,8 Z"/></marker>
+      </defs>
+      <text class="elab" x="294" y="62">FAST — skip +2 stages</text>
+      <path class="arc" marker-end="url(#m1ti)" d="M58,120 Q176,80 288,120"/>
+      <path class="arc" marker-end="url(#m1ti)" d="M294,120 Q412,80 524,120"/>
+      <path class="arc" marker-end="url(#m1ti)" d="M530,120 Q648,80 758,120"/>
+      <path class="edge" marker-end="url(#m1t)" d="M106,144 L122,144"/>
+      <path class="edge" marker-end="url(#m1t)" d="M224,144 L240,144"/>
+      <path class="edge" marker-end="url(#m1t)" d="M342,144 L358,144"/>
+      <path class="edge" marker-end="url(#m1t)" d="M460,144 L476,144"/>
+      <path class="edge" marker-end="url(#m1t)" d="M578,144 L594,144"/>
+      <path class="edge" marker-end="url(#m1t)" d="M696,144 L710,144"/>
+      <rect class="node t-safe"   x="10"  y="120" width="96" height="48" rx="8"/><text class="nlbl" x="58"  y="142">s1</text><text class="nsub" x="58"  y="159">cost 6</text>
+      <rect class="node t-safe"   x="128" y="120" width="96" height="48" rx="8"/><text class="nlbl" x="176" y="142">s2</text><text class="nsub" x="176" y="159">cost 12</text>
+      <rect class="node t-mid"    x="246" y="120" width="96" height="48" rx="8"/><text class="nlbl" x="294" y="142">s3</text><text class="nsub" x="294" y="159">cost 20</text>
+      <rect class="node t-mid"    x="364" y="120" width="96" height="48" rx="8"/><text class="nlbl" x="412" y="142">s4</text><text class="nsub" x="412" y="159">cost 32</text>
+      <rect class="node t-danger" x="482" y="120" width="96" height="48" rx="8"/><text class="nlbl" x="530" y="142">s5</text><text class="nsub" x="530" y="159">cost 46</text>
+      <rect class="node t-danger" x="600" y="120" width="96" height="48" rx="8"/><text class="nlbl" x="648" y="142">s6</text><text class="nsub" x="648" y="159">cost 64</text>
+      <rect class="node t-goal"   x="716" y="120" width="96" height="48" rx="8"/><text class="nlbl" x="764" y="142">GOAL</text><text class="nsub" x="764" y="159">+12</text>
+      <path class="risk" marker-end="url(#m1r)" d="M176,168 L372,236"/>
+      <path class="risk" marker-end="url(#m1r)" d="M412,168 L408,236"/>
+      <path class="risk" marker-end="url(#m1r)" d="M648,168 L444,236"/>
+      <text class="elab" x="610" y="208">rare fault</text>
+      <rect class="node t-danger" x="300" y="238" width="200" height="42" rx="8"/><text class="nlbl" x="400" y="260">CATASTROPHE</text><text class="nsub" x="400" y="275">− cost_cat</text>
+    </svg>
+    <figcaption>Linear 6-step chain. <b>FAST</b> skips two stages (cheap, exposed); <b>SAFE</b>/<b>ASK</b> advance one. Any risky step can fall into the single <b>CATASTROPHE</b> terminal, whose cost climbs 6→64 along the chain.</figcaption>
+    </figure>
+
+    <h3>Per-stage danger</h3>
+    <div class="scroll"><table>
+      <tr><th>stage i</th><th class="r">1</th><th class="r">2</th><th class="r">3</th><th class="r">4</th><th class="r">5</th><th class="r">6</th></tr>
+      <tr><td>p_cat (FAST)</td><td class="r">.02</td><td class="r">.02</td><td class="r">.02</td><td class="r">.02</td><td class="r">.02</td><td class="r">.02</td></tr>
+      <tr><td>cost_cat</td><td class="r">6</td><td class="r">12</td><td class="r">20</td><td class="r">32</td><td class="r">46</td><td class="r">64</td></tr>
+    </table></div>
+
+    <h3>Reward / transition function</h3>
+    <pre><span class="c"># states: 0..5 = stages, 6 = GOAL, 7 = CATASTROPHE  (both terminal)</span>
+<span class="c"># advance(i, step) = GOAL if i+step >= 6 else i+step</span>
+
+<span class="k">FAST</span>  p = p_cat[i]                       dest = advance(i, <span class="n">2</span>)
+      P[i, FAST, CATASTROPHE] += p       R = <span class="n">-cost_cat[i]</span>
+      P[i, FAST, dest]        += 1 - p   R = -step_cost (+goal_reward if dest=GOAL)
+
+<span class="k">SAFE</span>  p = p_cat[i] * <span class="n">0.15</span>              dest = advance(i, <span class="n">1</span>)
+      P[i, SAFE, CATASTROPHE] += p       R = <span class="n">-cost_cat[i]</span>
+      P[i, SAFE, dest]        += 1 - p   R = -step_cost - safe_penalty (+goal if dest=GOAL)
+
+<span class="k">ASK</span>   dest = advance(i, <span class="n">1</span>)
+      P[i, ASK, dest] = <span class="n">1.0</span>                R = -ask_cost (+goal_reward if dest=GOAL)</pre>
+    <div class="note">Config: <code>goal_reward=12</code>, <code>step_cost=0.1</code>, <code>safe_penalty=0.5</code>, <code>ask_cost=1.2</code>, <code>fast_step=2</code>.</div>
+  </section>
+
+  <!-- WEB -->
+  <section id="web">
+    <h2>RiskyWeb <span class="tag">src/env_web.py</span></h2>
+    <p class="lede">A layered branching DAG (8 layers × 3 branches). Pages are <b>typed</b>; danger grows in later layers, the next page is sampled (stochastic branching), and both failure probability and cost carry jitter so a policy must generalise over danger rather than memorise states.</p>
+
+    <figure class="diagram">
+    <svg class="dg" viewBox="0 0 880 380" role="img" aria-label="RiskyWeb: an 8 by 3 layered branching DAG; a chosen action samples the next page among the next layer's branches; danger grows across layers; risky steps end in one catastrophe terminal.">
+      <defs>
+        <marker id="m2t" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path class="mk-t" d="M0,0 L9,4 L0,8 Z"/></marker>
+        <marker id="m2r" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path class="mk-r" d="M0,0 L9,4 L0,8 Z"/></marker>
+      </defs>
+      <text class="elab" x="72"  y="26">L0 · nav</text>
+      <text class="elab" x="242" y="26">L1 · form</text>
+      <text class="elab" x="412" y="26">L2 · payment</text>
+      <text class="elab" x="632" y="26">L7 · confirm</text>
+      <text class="elab" x="812" y="26">goal</text>
+      <text x="512" y="188" style="font-size:34px;fill:var(--faint);text-anchor:middle;font-family:var(--f-head)">⋯</text>
+      <path class="edge" marker-end="url(#m2t)" d="M114,176 L198,74"/>
+      <path class="edge" marker-end="url(#m2t)" d="M114,176 L198,176"/>
+      <path class="edge" marker-end="url(#m2t)" d="M114,176 L198,278"/>
+      <path class="edge thin" marker-end="url(#m2t)" d="M284,176 L368,74"/>
+      <path class="edge thin" marker-end="url(#m2t)" d="M284,176 L368,176"/>
+      <path class="edge thin" marker-end="url(#m2t)" d="M284,176 L368,278"/>
+      <path class="edge" marker-end="url(#m2t)" d="M674,66 L768,168"/>
+      <path class="edge" marker-end="url(#m2t)" d="M674,176 L768,176"/>
+      <path class="edge" marker-end="url(#m2t)" d="M674,286 L768,184"/>
+      <rect class="node t-safe"   x="30"  y="46"  width="84" height="40" rx="8"/><text class="nlbl" x="72"  y="71">nav</text>
+      <rect class="node t-safe"   x="30"  y="156" width="84" height="40" rx="8"/><text class="nlbl" x="72"  y="181">nav</text>
+      <rect class="node t-safe"   x="30"  y="266" width="84" height="40" rx="8"/><text class="nlbl" x="72"  y="291">nav</text>
+      <rect class="node t-mid"    x="200" y="46"  width="84" height="40" rx="8"/><text class="nlbl" x="242" y="71">form</text>
+      <rect class="node t-mid"    x="200" y="156" width="84" height="40" rx="8"/><text class="nlbl" x="242" y="181">form</text>
+      <rect class="node t-mid"    x="200" y="266" width="84" height="40" rx="8"/><text class="nlbl" x="242" y="291">form</text>
+      <rect class="node t-danger" x="370" y="46"  width="84" height="40" rx="8"/><text class="nlbl" x="412" y="71">pay</text>
+      <rect class="node t-danger" x="370" y="156" width="84" height="40" rx="8"/><text class="nlbl" x="412" y="181">pay</text>
+      <rect class="node t-danger" x="370" y="266" width="84" height="40" rx="8"/><text class="nlbl" x="412" y="291">pay</text>
+      <rect class="node t-danger" x="590" y="46"  width="84" height="40" rx="8"/><text class="nlbl" x="632" y="71">confirm</text>
+      <rect class="node t-danger" x="590" y="156" width="84" height="40" rx="8"/><text class="nlbl" x="632" y="181">confirm</text>
+      <rect class="node t-danger" x="590" y="266" width="84" height="40" rx="8"/><text class="nlbl" x="632" y="291">confirm</text>
+      <rect class="node t-goal"   x="770" y="156" width="84" height="40" rx="8"/><text class="nlbl" x="812" y="175">GOAL</text><text class="nsub" x="812" y="190">+15</text>
+      <path class="risk" marker-end="url(#m2r)" d="M412,306 L424,330"/>
+      <path class="risk" marker-end="url(#m2r)" d="M632,306 L476,330"/>
+      <rect class="node t-danger" x="330" y="330" width="200" height="40" rx="8"/><text class="nlbl" x="430" y="355">CATASTROPHE</text>
+    </svg>
+    <figcaption>8×3 layered branching DAG. A chosen action <b>samples</b> the next page among the next layer's branches (Dirichlet α=0.7). Danger grows left→right (navigation → payment → confirm); a risky step ends in the single <b>CATASTROPHE</b> terminal.</figcaption>
+    </figure>
+
+    <h3>Page types — base (p_cat, cost_cat)</h3>
+    <div class="scroll"><table>
+      <tr><th>type</th><th class="r">base p_cat</th><th class="r">base cost</th></tr>
+      <tr><td class="pt-safe">navigation</td><td class="r">0.012</td><td class="r">5</td></tr>
+      <tr><td class="pt-mid">form_fill</td><td class="r">0.030</td><td class="r">13</td></tr>
+      <tr><td class="pt-mid">account</td><td class="r">0.022</td><td class="r">26</td></tr>
+      <tr><td class="pt-danger">payment</td><td class="r">0.020</td><td class="r">46</td></tr>
+      <tr><td class="pt-danger">confirm</td><td class="r">0.018</td><td class="r">72</td></tr>
+    </table></div>
+
+    <h3>Danger assignment &amp; branching</h3>
+    <pre><span class="c"># per page s of type t, with jitter U(.):</span>
+p_cat[s]  = base_p(t) * (1 + U(<span class="n">-0.30, +0.30</span>))     <span class="c"># p_jitter</span>
+cost_cat[s] = base_c(t) * (1 + U(<span class="n">-0.25, +0.25</span>))   <span class="c"># cost_jitter</span>
+
+<span class="c"># successor of advancing `step` layers (branching):</span>
+target = layer(s) + step
+if target >= n_layers:  dests = [GOAL],      probs = [<span class="n">1.0</span>]
+else:                   dests = pages(target), probs = Dirichlet(α=<span class="n">0.7</span>)</pre>
+
+    <h3>Reward / transition function</h3>
+    <pre><span class="c"># action spec: FAST(step=2, p=p_cat[s]) SAFE(step=1, p=p_cat[s]*0.15) ASK(step=1, p=0)</span>
+for a in {FAST, SAFE, ASK}:
+    if p &gt; 0:
+        P[s, a, CATASTROPHE] += p          R = <span class="n">-cost_cat[s]</span>
+    for (d, dp) in successor(s, step):     <span class="c"># branches</span>
+        P[s, a, d] += (1 - p) * dp
+        R[s, a, d]  = -cost(a) + (goal_reward if d=GOAL else 0)</pre>
+    <div class="note">Config: <code>goal_reward=15</code>, <code>step_cost=0.1</code>, <code>safe_penalty=0.4</code>, <code>ask_cost=1.0</code>, <code>branch_concentration=0.7</code>.</div>
+  </section>
+
+  <!-- FLOW -->
+  <section id="flow">
+    <h2>RiskyFlow <span class="tag">src/env_v2.py</span></h2>
+    <p class="lede">The richest environment (10 × 4) and the main benchmark. It has <b>graded</b> failures (a minor and a major terminal), <b>semantic</b> visible elements that drive danger, a <b>hidden</b> per-page severity multiplier, and a <b>noisy observable hint</b> — so the three risk measures genuinely disagree and the agent must infer risk.</p>
+
+    <figure class="diagram">
+    <svg class="dg" viewBox="0 0 820 330" role="img" aria-label="RiskyFlow single step: a risky action leads to success, a minor fault, or a rare major fault; SAFE scales fault probabilities down and ASK removes them.">
+      <defs>
+        <marker id="m3t" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path class="mk-t" d="M0,0 L9,4 L0,8 Z"/></marker>
+        <marker id="m3a" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path class="mk-a" d="M0,0 L9,4 L0,8 Z"/></marker>
+        <marker id="m3r" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path class="mk-r" d="M0,0 L9,4 L0,8 Z"/></marker>
+      </defs>
+      <path class="edge" marker-end="url(#m3t)" d="M164,150 C330,110 430,56 552,56"/>
+      <path class="warn" marker-end="url(#m3a)" d="M164,158 L552,164"/>
+      <path class="risk" marker-end="url(#m3r)" d="M164,168 C330,210 430,272 552,272"/>
+      <text class="elab" x="372" y="92">success · p_ok</text>
+      <text class="elab" x="372" y="150">minor · q_minor</text>
+      <text class="elab" x="372" y="252">major · q_major</text>
+      <rect class="node t-danger" x="24"  y="128" width="140" height="60" rx="10"/><text class="nlbl" x="94" y="153">page s</text><text class="nsub" x="94" y="172">payment / confirm</text>
+      <rect class="node t-next"   x="556" y="28"  width="236" height="56" rx="10"/><text class="nlbl" x="674" y="52">next page s′</text><text class="nsub" x="674" y="70">→ GOAL path</text>
+      <rect class="node t-mid"    x="556" y="136" width="236" height="56" rx="10"/><text class="nlbl" x="674" y="160">CAT_MINOR</text><text class="nsub" x="674" y="178">− c_minor ≤ 25</text>
+      <rect class="node t-danger" x="556" y="244" width="236" height="56" rx="10"/><text class="nlbl" x="674" y="268">CAT_MAJOR</text><text class="nsub" x="674" y="286">− c_major ≤ 90</text>
+      <text class="cap" x="24" y="318">FAST: full fault prob · SAFE: ×0.15 · ASK: 0 fault (escalate to System 2)</text>
+    </svg>
+    <figcaption>Every risky step has <b>graded</b> outcomes: advance (success), a <b>minor</b> fault, or a rare <b>major</b> fault. <b>SAFE</b> scales both fault probabilities by 0.15; <b>ASK</b> removes them. Structurally RiskyFlow is a 10×4 branching DAG like RiskyWeb.</figcaption>
+    </figure>
+
+    <h3>Page types — base (q_minor, q_major, c_minor, c_major)</h3>
+    <div class="scroll"><table>
+      <tr><th>type</th><th class="r">q_minor</th><th class="r">q_major</th><th class="r">c_minor</th><th class="r">c_major</th></tr>
+      <tr><td class="pt-safe">navigation</td><td class="r">0.015</td><td class="r">0.002</td><td class="r">2</td><td class="r">8</td></tr>
+      <tr><td class="pt-safe">search</td><td class="r">0.020</td><td class="r">0.003</td><td class="r">3</td><td class="r">10</td></tr>
+      <tr><td class="pt-mid">form_fill</td><td class="r">0.035</td><td class="r">0.006</td><td class="r">5</td><td class="r">18</td></tr>
+      <tr><td class="pt-mid">login</td><td class="r">0.030</td><td class="r">0.010</td><td class="r">6</td><td class="r">30</td></tr>
+      <tr><td class="pt-mid">account</td><td class="r">0.030</td><td class="r">0.012</td><td class="r">7</td><td class="r">40</td></tr>
+      <tr><td class="pt-danger">payment</td><td class="r">0.030</td><td class="r">0.018</td><td class="r">9</td><td class="r">60</td></tr>
+      <tr><td class="pt-danger">confirm</td><td class="r">0.025</td><td class="r">0.022</td><td class="r">10</td><td class="r">85</td></tr>
+    </table></div>
+
+    <h3>Visible elements — danger multiplier</h3>
+    <div class="scroll"><table>
+      <tr><th>element</th><th class="r">×</th><th>element</th><th class="r">×</th><th>element</th><th class="r">×</th></tr>
+      <tr><td>next / back / search_box</td><td class="r">1.0</td><td>edit_cart</td><td class="r">1.05</td><td>apply_coupon</td><td class="r">1.1</td></tr>
+      <tr><td>newsletter_signup</td><td class="r">1.0</td><td>enter_address</td><td class="r">1.15</td><td class="pt-mid">save_card</td><td class="r">1.4</td></tr>
+      <tr><td class="pt-danger">confirm_payment</td><td class="r">1.8</td><td class="pt-danger">place_order</td><td class="r">1.9</td><td class="pt-danger">delete_account</td><td class="r">2.2</td></tr>
+    </table></div>
+
+    <h3>Danger assignment (per page s)</h3>
+    <pre><span class="c"># emax = max element multiplier on the page;  sev ∈ {0.6, 1.0, 1.4} is HIDDEN</span>
+q_minor[s] = min(<span class="n">0.5</span>,  q_minor_base * sev)
+q_major[s] = min(<span class="n">0.4</span>,  q_major_base * emax * sev)
+c_minor[s] = min(<span class="n">25</span>,   c_minor_base * (0.8 + 0.4*sev))
+c_major[s] = min(<span class="n">90</span>,   c_major_base * emax * (0.7 + 0.5*sev))
+
+<span class="c"># observable (noisy) danger meter — severity itself is NOT observed:</span>
+obs_hint[s] = normalize( sev * emax * (1 + U(<span class="n">-0.5, +0.5</span>)) )   <span class="c"># in [0,1]</span></pre>
+
+    <h3>Reward / transition function</h3>
+    <pre><span class="c"># fmul: FAST=1.0  SAFE=0.15  ASK=0.0   (scales BOTH fault probabilities)</span>
+for a in {FAST, SAFE, ASK}:
+    q_min = q_minor[s] * fmul
+    q_maj = q_major[s] * fmul
+    if q_min &gt; 0:  P[s,a,CAT_MINOR] += q_min   R = <span class="n">-c_minor[s]</span>
+    if q_maj &gt; 0:  P[s,a,CAT_MAJOR] += q_maj   R = <span class="n">-c_major[s]</span>
+    p_ok = 1 - q_min - q_maj
+    for (d, dp) in successor(s, step):          <span class="c"># Dirichlet(0.7) branching</span>
+        P[s,a,d] += p_ok * dp
+        R[s,a,d]  = -cost(a) + (goal_reward if d=GOAL else 0)</pre>
+    <div class="note">Config: <code>goal_reward=15</code>, <code>severity_levels=(0.6, 1.0, 1.4)</code>, <code>obs_hint_noise=0.5</code>, <code>cost_minor_cap=25</code>, <code>cost_major_cap=90</code>. Terminals: GOAL, CAT_MINOR, CAT_MAJOR.</div>
+
+    <h3>Example rendered state</h3>
+    <pre><span class="c"># env.render_state(39) — an 'account' page with a delete_account element</span>
+{
+  <span class="k">"state"</span>: "You are an agent on an 'account' page (step 10 of 10).
+            Visible actions: delete account, enter address, save card.
+            The page looks high-risk. ...",
+  <span class="k">"question"</span>: "Which action do you take to make progress safely?",
+  <span class="k">"options"</span>: [ {"label":"A","key":"fast", ...},
+                {"label":"B","key":"safe", ...},
+                {"label":"C","key":"ask",  ...} ]
+}</pre>
+  </section>
+
+  <footer>Generated from the project source · entropic_risk_jev/src/{env, env_web, env_v2}.py</footer>
+</div>
+</body>
+</html>
