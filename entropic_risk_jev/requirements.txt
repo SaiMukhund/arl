@@ -1,0 +1,17 @@
+# Core (exact value iteration + experiment) -- runs with just these:
+numpy>=1.24
+
+# Plotting (optional, for run_experiment --plot):
+matplotlib>=3.6
+
+# Learning pipeline (fitted value iteration):
+torch>=2.1
+
+# yev0-4b backbone only (large download of choyiny/yev0-4b, Qwen3.5-4B-Base):
+transformers>=5.18
+huggingface_hub>=0.23
+# Strongly recommended on CUDA for Gated DeltaNet speed:
+#   flash-linear-attention
+#   causal-conv1d
+# Optional, to fine-tune the base instead of just the value head:
+#   peft>=0.11

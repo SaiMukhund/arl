@@ -41,11 +41,13 @@ def main():
         seed=args.seed+si*101
         np.random.seed(seed); random.seed(seed); torch.manual_seed(seed)
         print(f"[{seed}] collecting counterfactual labels")
-        X,ys,yc,ycat,yq=collect_counterfactual_dataset(
-            args.train_states,args.mc_samples,seed,cfg.horizon)
+        X,ys,yc,ycat,yq,ycv,yent=collect_counterfactual_dataset(
+            args.train_states,args.mc_samples,seed,cfg.horizon,
+            alpha=cfg.alpha,theta=cfg.theta,cost_scale=cfg.cost_scale)
         print(f"[{seed}] training RiskNet")
-        model,device=train_risk_net(X,ys,yc,ycat,yq,hidden=cfg.risk_hidden,
-            epochs=args.risk_epochs,batch_size=cfg.risk_batch_size,seed=seed)
+        model,device=train_risk_net(X,ys,yc,ycat,yq,ycv,yent,hidden=cfg.risk_hidden,
+            epochs=args.risk_epochs,batch_size=cfg.risk_batch_size,seed=seed,
+            cost_scale=cfg.cost_scale)
         print(f"[{seed}] training DQN")
         dqn=train_dqn(cfg,args.episodes,seed)
         names=["expected_cost","cvar","entropic","cvar_entropic","safe_constraint","dqn","dqn_risk"]

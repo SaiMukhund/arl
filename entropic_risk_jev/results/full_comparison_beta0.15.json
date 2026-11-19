@@ -1,0 +1,104 @@
+{
+  "beta": 0.15,
+  "rows": {
+    "oracle (entropic VI)": {
+      "mean_return": 9.556660369416367,
+      "std_return": 2.924395493093776,
+      "success_rate": 0.9797,
+      "catastrophe_rate": 0.0203,
+      "cvar_5": 1.3393573883273262,
+      "worst_return": -12.243904102702244,
+      "U_beta": 8.009415035481702,
+      "U_beta_mc": 8.07796776941159,
+      "agree_oracle": 1.0
+    },
+    "risk-neutral Jev (b=0)": {
+      "mean_return": 11.56691407866579,
+      "std_return": 9.98881235047389,
+      "success_rate": 0.95055,
+      "catastrophe_rate": 0.04945,
+      "cvar_5": -25.108818426684216,
+      "worst_return": -87.54987667217252,
+      "U_beta": -48.30863177512219,
+      "U_beta_mc": -48.79758197384013,
+      "agree_oracle": 0.2916666666666667
+    },
+    "always FAST": {
+      "mean_return": 11.294199967247033,
+      "std_return": 11.889860107934108,
+      "success_rate": 0.9139,
+      "catastrophe_rate": 0.0861,
+      "cvar_5": -33.26580296516791,
+      "worst_return": -84.17518931552232,
+      "U_beta": -47.77390741534293,
+      "U_beta_mc": -47.07137467821969,
+      "agree_oracle": 0.25
+    },
+    "always SAFE": {
+      "mean_return": 9.944871806892708,
+      "std_return": 7.571433136315958,
+      "success_rate": 0.97495,
+      "catastrophe_rate": 0.02505,
+      "cvar_5": -10.102563862145837,
+      "worst_return": -87.54987667217252,
+      "U_beta": -45.22624372463208,
+      "U_beta_mc": -45.113414923312774,
+      "agree_oracle": 0.041666666666666664
+    },
+    "always ASK": {
+      "mean_return": 7.0,
+      "std_return": 0.0,
+      "success_rate": 1.0,
+      "catastrophe_rate": 0.0,
+      "cvar_5": 7.0,
+      "worst_return": 7.0,
+      "U_beta": 7.000000000000005,
+      "U_beta_mc": 7.000000000000005,
+      "agree_oracle": 0.7083333333333334
+    },
+    "random": {
+      "mean_return": 8.92171314475172,
+      "std_return": 11.42070331847465,
+      "success_rate": 0.97115,
+      "catastrophe_rate": 0.02885,
+      "cvar_5": -25.68128710496564,
+      "worst_return": -87.14987667217251,
+      "U_beta": -48.7391445483089,
+      "U_beta_mc": -49.48514903889462,
+      "agree_oracle": 0.3333333333333333
+    },
+    "MLP + risk head": {
+      "mean_return": 9.556660369416367,
+      "std_return": 2.924395493093776,
+      "success_rate": 0.9797,
+      "catastrophe_rate": 0.0203,
+      "cvar_5": 1.3393573883273262,
+      "worst_return": -12.243904102702244,
+      "U_beta": 8.009415035481702,
+      "U_beta_mc": 8.07796776941159,
+      "agree_oracle": 1.0
+    },
+    "stock yev0-4b (zero-shot)": {
+      "mean_return": 9.170016924379068,
+      "std_return": 14.338672382991367,
+      "success_rate": 0.951525,
+      "catastrophe_rate": 0.048475,
+      "cvar_5": -47.71641151241864,
+      "worst_return": -87.54987667217252,
+      "U_beta": -55.16357905147703,
+      "U_beta_mc": -55.27203508667755,
+      "agree_oracle": 0.041666666666666664
+    },
+    "yev0-4b + risk head": {
+      "mean_return": 9.556660369416367,
+      "std_return": 2.924395493093776,
+      "success_rate": 0.9797,
+      "catastrophe_rate": 0.0203,
+      "cvar_5": 1.3393573883273262,
+      "worst_return": -12.243904102702244,
+      "U_beta": 8.009415035481702,
+      "U_beta_mc": 8.07796776941159,
+      "agree_oracle": 1.0
+    }
+  }
+}

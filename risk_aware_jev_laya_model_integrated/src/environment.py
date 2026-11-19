@@ -8,6 +8,8 @@ import numpy as np
 
 ACTION_NAMES = ["execute", "verify", "request_confirmation"]
 N_ACTIONS = len(ACTION_NAMES)
+# Terminal reward for a successful transaction (reward units == cost units).
+SUCCESS_REWARD = 28.0
 # 16 observable features; latent hazards are never exposed directly.
 OBS_DIM = 16
 
@@ -132,7 +134,7 @@ class TransactionEnv:
         self.total_cost += loss
         self.done = True
         self.executed = True
-        reward = (28.0 if success else 0.0) - loss
+        reward = (SUCCESS_REWARD if success else 0.0) - loss
         if forced:
             reward -= 2.0  # time-overrun penalty is distinct from financial loss
         info = self._info(success, catastrophic, loss, forced, ps, po, pc, severity)
@@ -195,7 +197,9 @@ class TransactionEnv:
         self.t += 1
         if self.t >= self.horizon:
             # The deadline forces a commit; the agent must manage its time budget.
-            return self._finish(forced=True)
+            # Keep this step's check fee in the reward alongside the terminal outcome.
+            obs, terminal_reward, done, info = self._finish(forced=True)
+            return obs, reward + terminal_reward, done, info
         return self._obs(), float(reward), False, self._info()
 
     def _simulate_after_action(self, action, rng):
@@ -207,14 +211,20 @@ class TransactionEnv:
         if action == 0:
             ps, po, pc, severity = self.outcome_distribution(verified, confirmed)
         else:
-            if action == 1 and not verified:
-                verified = True
-                operational += 1.8 + 1.4*self.amount
-                self.shifted_hazard *= .82
-            elif action == 2 and not confirmed:
-                confirmed = True
-                operational += 2.8 + self.amount
-                self.shifted_hazard *= .76
+            if action == 1:
+                if not verified:
+                    verified = True
+                    operational += 1.8 + 1.4*self.amount
+                    self.shifted_hazard *= .82
+                else:
+                    operational += 0.6  # redundant verification fee, as in step()
+            else:
+                if not confirmed:
+                    confirmed = True
+                    operational += 2.8 + self.amount
+                    self.shifted_hazard *= .76
+                else:
+                    operational += 0.8  # redundant confirmation fee, as in step()
             # The fallback is conservative but deadline-aware: apply the other
             # complementary check only when at least two slots remain.
             if steps_left >= 2 and not (verified and confirmed):

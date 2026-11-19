@@ -1,5 +1,5 @@
 import numpy as np
-from .environment import TransactionEnv, ACTION_NAMES
+from .environment import TransactionEnv, ACTION_NAMES, SUCCESS_REWARD
 from .risk_measures import upper_cvar, entropic_risk, entropic_premium, score_actions
 from .models import predict_risk
 
@@ -8,7 +8,7 @@ def learned_estimates(model, device, obs):
     return (np.array([r["success"] for r in rows]),
             np.array([r["cost"] for r in rows]),
             np.array([r["cvar"] for r in rows]),
-            np.array([max(0,r["cvar"]-r["cost"]) for r in rows]),
+            np.array([r["entropic_premium"] for r in rows]),
             np.array([r["cat"] for r in rows]))
 
 def choose(est, cfg, method):
@@ -36,10 +36,14 @@ def evaluate(name, n, seed, cfg, model, device, dqn=None, laya=None,
             elif name=="dqn_risk":
                 qvals=dqn.q_values(obs)
                 risk=learned_estimates(model,device,obs)
-                # DQN estimates expected scalar return; subtract learned
-                # cost/tail penalties as an explicit hybrid ablation.
+                # DQN Q-values are expected return in reward units and already
+                # include expected cost, so only tail penalties are subtracted.
+                # Penalties are converted from score_actions' success-probability
+                # units (cost/cost_scale) to reward units (x SUCCESS_REWARD) so the
+                # risk/return trade-off matches the other risk-aware selectors.
                 ps,mc,cv,ep,pcat=risk
-                hybrid=qvals - cfg.lambda_cost*mc - cfg.beta_cvar*cv - cfg.gamma_entropic*ep
+                to_reward=SUCCESS_REWARD/cfg.cost_scale
+                hybrid=qvals - to_reward*(cfg.beta_cvar*cv + cfg.gamma_entropic*ep)
                 feasible=pcat<=cfg.safety_epsilon
                 if feasible.any():
                     hybrid=np.where(feasible,hybrid,-1e9)
