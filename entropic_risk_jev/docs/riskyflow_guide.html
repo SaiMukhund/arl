@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RiskyFlow Explained</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: explainer — stacked sections, concept cards, one layer-progression table */
+  :root{
+    --bg:#F5F4EF; --panel:#FFFFFF; --ink:#13233A; --muted:#55627A; --faint:#7E8AA0;
+    --line:#E2DFD4; --line2:#ECEAE0;
+    --teal:#1C7F8E; --teal-ink:#0F5663; --amber:#C27A17; --danger:#C0443A; --good:#1E7A4F;
+    --f-head:'Space Grotesk',system-ui,sans-serif; --f-body:'Inter',system-ui,sans-serif; --f-mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0E1726; --panel:#15223A; --ink:#EAF1FA; --muted:#A9B7CC; --faint:#7D8CA6;
+    --line:#26354F; --line2:#1D2B45; --teal:#56C4D4; --teal-ink:#9FE4EE; --amber:#E7A94B; --danger:#EC7368; --good:#64C999; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0E1726; --panel:#15223A; --ink:#EAF1FA; --muted:#A9B7CC; --faint:#7D8CA6;
+    --line:#26354F; --line2:#1D2B45; --teal:#56C4D4; --teal-ink:#9FE4EE; --amber:#E7A94B; --danger:#EC7368; --good:#64C999; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  img{max-width:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.6;
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .wrap{max-width:1000px;margin:0 auto;padding-block:38px 76px}
+  .eyebrow{font-family:var(--f-head);text-transform:uppercase;letter-spacing:2px;font-size:12px;font-weight:600;color:var(--teal)}
+  h1{font-family:var(--f-head);font-size:clamp(28px,5.5vw,44px);margin:6px 0 0;letter-spacing:-.5px;text-wrap:balance}
+  .sub{color:var(--muted);max-width:68ch;margin:12px 0 0;font-size:clamp(16px,2.3vw,19px)}
+  h2{font-family:var(--f-head);font-size:clamp(22px,3.6vw,29px);margin:0 0 6px;letter-spacing:-.3px}
+  h3{font-family:var(--f-head);font-size:17px;margin:0 0 6px}
+  p{margin:9px 0}
+  code{font-family:var(--f-mono);font-size:.9em;background:var(--line2);padding:1px 6px;border-radius:5px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:clamp(20px,3.4vw,32px);margin:0 0 20px}
+  .lede{color:var(--muted);max-width:72ch}
+
+  .cards{display:grid;gap:14px;margin-top:16px}
+  .c3{grid-template-columns:repeat(3,1fr)} .c2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:760px){.c3,.c2{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-left-width:5px;border-radius:12px;padding:16px 18px;background:var(--bg)}
+  .card.teal{border-left-color:var(--teal)} .card.amber{border-left-color:var(--amber)}
+  .card.ink{border-left-color:var(--ink)} .card.good{border-left-color:var(--good)} .card.danger{border-left-color:var(--danger)}
+  .card h3{color:var(--ink)} .card p{color:var(--muted);margin:4px 0 0;font-size:14.5px}
+  .card .tagline{font-family:var(--f-mono);font-size:12px;color:var(--faint);margin-top:8px}
+
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14.5px}
+  .scroll{overflow-x:auto}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line2);vertical-align:top}
+  th{font-family:var(--f-head);font-size:13px;color:var(--muted);font-weight:600}
+  td:first-child{font-weight:500}
+  .pt-safe{color:var(--good);font-weight:600} .pt-mid{color:var(--amber);font-weight:600} .pt-danger{color:var(--danger);font-weight:600}
+  .mono{font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+  .pill{display:inline-block;font-family:var(--f-head);font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
+  .pill.fast{color:var(--teal-ink);background:color-mix(in srgb,var(--teal) 16%,transparent)}
+  .pill.safe{color:#8a5a0f;background:color-mix(in srgb,var(--amber) 18%,transparent)}
+  .pill.ask{color:var(--ink);background:var(--line2)}
+
+  .flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .fnode{flex:1;min-width:120px;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--bg)}
+  .fnode .t{font-family:var(--f-head);font-weight:600;font-size:15px}
+  .fnode .d{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .arrow{align-self:center;color:var(--teal);font-size:26px}
+
+  .gradient{height:14px;border-radius:999px;margin:14px 0 6px;background:linear-gradient(90deg,var(--good),var(--amber),var(--danger))}
+  .gradlabels{display:flex;justify-content:space-between;font-size:12.5px;color:var(--faint);font-family:var(--f-mono)}
+
+  ul{margin:8px 0;padding-left:20px} li{margin:4px 0;color:var(--muted)} li b{color:var(--ink)}
+  .note{border-left:3px solid var(--teal);background:var(--line2);border-radius:0 10px 10px 0;padding:12px 16px;margin:14px 0;font-size:14.5px;color:var(--muted)}
+  footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:30px;font-family:var(--f-mono)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Custom environment · src/env_v2.py</p>
+  <h1>RiskyFlow, explained</h1>
+  <p class="sub">A plain-language guide to the main environment: what a <b>state</b> is, what <b>actions</b> you can take, what each <b>page type</b> means, and what you actually do as you move through the <b>10 layers</b>.</p>
+
+  <section>
+    <h2>The task in one line</h2>
+    <p class="lede">You are an agent stepping through a web task, page by page, from layer 1 to layer 10. Most pages are routine; a few are dangerous. On every page you choose how carefully to act. Reach the end to win the goal reward; a careless action on a dangerous page can end the episode in a costly failure.</p>
+  </section>
+
+  <section>
+    <h2>What is a state?</h2>
+    <p class="lede">A state is a single <b>page</b>. The environment has <b>40 pages</b> (10 layers × 4 branches) plus <b>3 terminal states</b>. Each page is described by:</p>
+    <div class="cards c2">
+      <div class="card teal"><h3>Layer / step</h3><p>How far along you are (1–10). Danger tends to grow in later layers.</p></div>
+      <div class="card teal"><h3>Page type</h3><p>navigation, search, form_fill, login, account, payment, or confirm — this sets the base danger.</p></div>
+      <div class="card teal"><h3>Visible elements</h3><p>The buttons on the page (e.g. <code>next</code>, <code>confirm_payment</code>, <code>delete_account</code>) — dangerous elements raise the risk.</p></div>
+      <div class="card amber"><h3>Hidden severity &amp; noisy hint</h3><p>A hidden multiplier (×0.6 / 1.0 / 1.4) scales the real danger; the agent sees only a <b>noisy hint</b>, so it must infer risk (partial observability).</p></div>
+    </div>
+    <div class="note"><b>Observation vs. true state:</b> the agent observes the page type, elements, layer and the noisy hint — but <b>not</b> the hidden severity. That gap is what makes the task realistic.</div>
+  </section>
+
+  <section>
+    <h2>What are the actions?</h2>
+    <p class="lede">On <b>every</b> page, in <b>every</b> layer, you choose one of the same three actions. They trade speed against safety.</p>
+    <div class="cards c3">
+      <div class="card teal"><h3><span class="pill fast">A · FAST</span></h3><p>Advance <b>2 layers</b> at once. Cheapest, fastest — but fully exposed to the page's failure risk.</p><div class="tagline">step +2 · full risk · cost 0.1</div></div>
+      <div class="card amber"><h3><span class="pill safe">B · SAFE</span></h3><p>Advance <b>1 layer</b> carefully. Failure probability is scaled down to <b>×0.15</b>, for a small extra penalty.</p><div class="tagline">step +1 · risk ×0.15 · cost 0.5</div></div>
+      <div class="card ink"><h3><span class="pill ask">C · ASK</span></h3><p>Advance <b>1 layer</b> by escalating to a slower, reliable reasoner. <b>Zero</b> failure risk, at a fixed cost.</p><div class="tagline">step +1 · risk 0 · cost 1.0</div></div>
+    </div>
+    <div class="note">The action set never changes by layer. What changes is <b>which action is wise</b>, because the danger of the page changes.</div>
+  </section>
+
+  <section>
+    <h2>What each page type signifies</h2>
+    <p class="lede">The page type sets how likely and how costly a mistake is. Ordered from safest to most dangerous:</p>
+    <div class="scroll"><table>
+      <tr><th>Page type</th><th>What it means</th><th>Typical elements</th><th>Danger</th></tr>
+      <tr><td class="pt-safe">navigation</td><td>Browsing / moving between pages.</td><td class="mono">next, back, search_box</td><td class="pt-safe">lowest</td></tr>
+      <tr><td class="pt-safe">search</td><td>Searching for something.</td><td class="mono">search_box, next, back</td><td class="pt-safe">very low</td></tr>
+      <tr><td class="pt-mid">form_fill</td><td>Entering details (e.g. an address).</td><td class="mono">enter_address, next, newsletter_signup</td><td class="pt-mid">moderate (mostly recoverable)</td></tr>
+      <tr><td class="pt-mid">login</td><td>Authenticating.</td><td class="mono">next, back, newsletter_signup</td><td class="pt-mid">moderate</td></tr>
+      <tr><td class="pt-mid">account</td><td>Account settings — can delete the account.</td><td class="mono">save_card, enter_address, delete_account</td><td class="pt-mid">elevated</td></tr>
+      <tr><td class="pt-danger">payment</td><td>Paying — money can be lost.</td><td class="mono">save_card, confirm_payment, apply_coupon</td><td class="pt-danger">high cost</td></tr>
+      <tr><td class="pt-danger">confirm</td><td>Irreversible confirm / place order / delete.</td><td class="mono">place_order, confirm_payment, delete_account</td><td class="pt-danger">highest cost</td></tr>
+    </table></div>
+    <h3 style="margin-top:20px">Why the elements matter</h3>
+    <p class="lede">A visible element multiplies the page's major-fault danger. Harmless controls are ×1.0; irreversible ones are far higher:</p>
+    <div class="scroll"><table>
+      <tr><th>Element</th><th class="pt-safe">×1.0</th><th class="pt-mid">1.05–1.4</th><th class="pt-danger">1.8–2.2</th></tr>
+      <tr><td>examples</td><td class="mono">next, back, search_box, newsletter_signup</td><td class="mono">edit_cart 1.05, apply_coupon 1.1, enter_address 1.15, save_card 1.4</td><td class="mono">confirm_payment 1.8, place_order 1.9, delete_account 2.2</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>What you do in each layer</h2>
+    <p class="lede">The three actions are always available. But page types shift as you go: early layers are mostly navigation and forms (routine), later layers fill with payment and confirm pages (dangerous). So the <b>sensible</b> action climbs the ladder FAST → SAFE → ASK.</p>
+    <div class="gradient"></div>
+    <div class="gradlabels"><span>Layer 1 — routine</span><span>Layer 5 — mixed</span><span>Layer 10 — irreversible</span></div>
+
+    <div class="scroll"><table>
+      <tr><th>Layer</th><th>What pages you'll likely see</th><th>What makes sense</th></tr>
+      <tr><td>1–2 <span class="pill fast">start</span></td><td class="mono">navigation, search, form_fill</td><td><span class="pill fast">FAST</span> — routine, cheap to get wrong</td></tr>
+      <tr><td>3–4</td><td class="mono">form_fill, login, some account</td><td><span class="pill fast">FAST</span> / <span class="pill safe">SAFE</span> on account pages</td></tr>
+      <tr><td>5–6</td><td class="mono">account, payment appearing</td><td><span class="pill safe">SAFE</span> — risk is rising</td></tr>
+      <tr><td>7–8</td><td class="mono">payment, confirm, login</td><td><span class="pill safe">SAFE</span> / <span class="pill ask">ASK</span> on payment &amp; confirm</td></tr>
+      <tr><td>9–10 <span class="pill ask">final</span></td><td class="mono">confirm, payment (irreversible)</td><td><span class="pill ask">ASK</span> — the costliest mistakes live here</td></tr>
+    </table></div>
+    <div class="note"><b>Example layout (seed 0)</b> — the actual page types the generator produced, layer by layer. Each seed reshuffles them, but the danger always trends upward:
+    <div class="mono" style="margin-top:8px;line-height:1.7">
+      L1 &nbsp;form · nav · nav · nav<br>
+      L2 &nbsp;account · payment · form · login<br>
+      L3 &nbsp;form · <b style="color:var(--danger)">confirm</b> · account · nav<br>
+      L4 &nbsp;payment · nav · account · nav<br>
+      L5 &nbsp;payment · login · search · form<br>
+      L6 &nbsp;nav · nav · account · account<br>
+      L7 &nbsp;account · login · <b style="color:var(--danger)">confirm · confirm</b><br>
+      L8 &nbsp;<b style="color:var(--danger)">payment · payment · payment</b> · login<br>
+      L9 &nbsp;form · payment · account · login<br>
+      L10 <b style="color:var(--danger)">account · confirm · confirm · account</b>
+    </div></div>
+  </section>
+
+  <section>
+    <h2>How a step plays out</h2>
+    <p class="lede">From a page, your chosen action branches into one of three outcomes. FAST faces the full risk; SAFE scales it down; ASK removes it.</p>
+    <div class="flow">
+      <div class="fnode" style="border-left:5px solid var(--danger)"><div class="t">page s</div><div class="d">type + elements</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="fnode good"><div class="t">success</div><div class="d">advance to the next page</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="fnode" style="border-left:5px solid var(--amber)"><div class="t">CAT_MINOR</div><div class="d">recoverable error (−cost ≤ 25)</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="fnode" style="border-left:5px solid var(--danger)"><div class="t">CAT_MAJOR</div><div class="d">irreversible error (−cost ≤ 90)</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where it ends — the 3 terminal states</h2>
+    <div class="cards c3">
+      <div class="card good"><h3>GOAL</h3><p>You reached the last layer. Reward <b>+15</b>.</p></div>
+      <div class="card amber"><h3>CAT_MINOR</h3><p>A recoverable fault. Cost up to <b>−25</b>.</p></div>
+      <div class="card danger"><h3>CAT_MAJOR</h3><p>An irreversible fault. Cost up to <b>−90</b> — the heavy tail the risk measure fights.</p></div>
+    </div>
+    <div class="note"><b>The whole point:</b> a risk-neutral agent maximises average reward and will take FAST on dangerous pages because catastrophes are rare. A <b>risk-sensitive</b> agent weighs how <i>costly</i> those rare failures are, and escalates to SAFE or ASK exactly on the payment / confirm / account pages.</div>
+  </section>
+
+  <footer>RiskyFlow · entropic_risk_jev/src/env_v2.py · a custom environment built for this project</footer>
+</div>
+</body>
+</html>
